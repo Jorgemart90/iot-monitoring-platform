@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AlertRule } from '@app/database';
+import { RulesController } from './rules.controller';
+import { RulesService } from './rules.service';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([AlertRule])],
+  controllers: [RulesController],
+  providers: [RulesService],
+  exports: [RulesService],
+})
+export class RulesModule {}
