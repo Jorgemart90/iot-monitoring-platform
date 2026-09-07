@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DeviceReading } from '@app/database';
-import { PaginationDto, REDIS_KEYS } from '@app/common';
+import { Device, DeviceReading, UserRole } from '@app/database';
+import { AuthUser, PaginationDto, REDIS_KEYS } from '@app/common';
 import { RedisService } from '../redis/redis.service';
 import { MetricsProcessor } from './strategies/metrics-processor';
 import { MetricResult } from './strategies/metrics.strategy.interface';
@@ -14,6 +14,8 @@ export class AnalyticsService {
   constructor(
     @InjectRepository(DeviceReading)
     private readonly readingRepository: Repository<DeviceReading>,
+    @InjectRepository(Device)
+    private readonly deviceRepository: Repository<Device>,
     private readonly redisService: RedisService,
     private readonly metricsProcessor: MetricsProcessor,
   ) {}
@@ -47,7 +49,8 @@ export class AnalyticsService {
     this.logger.debug(`Metrics updated for device ${deviceId}`);
   }
 
-  async getMetrics(deviceId: string): Promise<Record<string, MetricResult>> {
+  async getMetrics(deviceId: string, user: AuthUser): Promise<Record<string, MetricResult>> {
+    await this.assertDeviceAccess(deviceId, user);
     const cacheKey = `${REDIS_KEYS.METRICS_CACHE}${deviceId}`;
     const cached = await this.redisService.hgetall(cacheKey);
     const result: Record<string, MetricResult> = {};
@@ -63,7 +66,8 @@ export class AnalyticsService {
     return result;
   }
 
-  async getReadings(deviceId: string, paginationDto: PaginationDto) {
+  async getReadings(deviceId: string, paginationDto: PaginationDto, user: AuthUser) {
+    await this.assertDeviceAccess(deviceId, user);
     const { page = 1, limit = 10 } = paginationDto;
     const [data, total] = await this.readingRepository.findAndCount({
       where: { deviceId },
@@ -76,5 +80,13 @@ export class AnalyticsService {
       data,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  private async assertDeviceAccess(deviceId: string, user: AuthUser): Promise<void> {
+    const where =
+      user.role === UserRole.MASTER ? { id: deviceId } : { id: deviceId, ownerId: user.userId };
+    if (!(await this.deviceRepository.exist({ where }))) {
+      throw new NotFoundException(`Device with id ${deviceId} not found`);
+    }
   }
 }

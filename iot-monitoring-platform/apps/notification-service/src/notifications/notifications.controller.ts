@@ -1,17 +1,11 @@
-import {
-  Controller,
-  Get,
-  Sse,
-  Req,
-  Res,
-  MessageEvent,
-} from '@nestjs/common';
+import { Controller, Get, Sse, Req, MessageEvent } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Observable, fromEvent } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
-import { Request, Response } from 'express';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { SseService } from '../sse/sse.service';
+import { AuthUser, CurrentUser } from '@app/common';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -20,11 +14,13 @@ export class NotificationsController {
 
   @Get('stream')
   @Sse()
-  @ApiOperation({ summary: 'Suscribirse a notificaciones de alertas en tiempo real (SSE)' })
+  @ApiOperation({
+    summary: 'Suscribirse a notificaciones de alertas en tiempo real (SSE)',
+  })
   @ApiResponse({ status: 200, description: 'Stream SSE de alertas disparadas' })
-  stream(@Req() req: Request, @Res() res: Response): Observable<MessageEvent> {
+  stream(@Req() req: Request, @CurrentUser() user: AuthUser): Observable<MessageEvent> {
     const clientId = uuidv4();
-    const subject = this.sseService.addClient(clientId);
+    const subject = this.sseService.addClient(clientId, user);
 
     req.on('close', () => {
       this.sseService.removeClient(clientId);

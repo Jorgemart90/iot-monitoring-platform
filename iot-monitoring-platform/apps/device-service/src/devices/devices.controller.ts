@@ -11,17 +11,11 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
-import { PaginationDto } from '@app/common';
+import { AuthUser, CurrentUser, PaginationDto } from '@app/common';
 
 @ApiTags('devices')
 @ApiBearerAuth()
@@ -32,15 +26,15 @@ export class DevicesController {
   @Post()
   @ApiOperation({ summary: 'Registrar nuevo dispositivo IoT' })
   @ApiResponse({ status: 201, description: 'Dispositivo creado exitosamente' })
-  create(@Body() createDeviceDto: CreateDeviceDto) {
-    return this.devicesService.create(createDeviceDto);
+  create(@Body() createDeviceDto: CreateDeviceDto, @CurrentUser() user: AuthUser) {
+    return this.devicesService.create(createDeviceDto, user);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar todos los dispositivos (paginado)' })
   @ApiResponse({ status: 200, description: 'Lista paginada de dispositivos' })
-  findAll(@Query() paginationDto: PaginationDto) {
-    return this.devicesService.findAll(paginationDto);
+  findAll(@Query() paginationDto: PaginationDto, @CurrentUser() user: AuthUser) {
+    return this.devicesService.findAll(paginationDto, user);
   }
 
   @Get(':id')
@@ -48,8 +42,8 @@ export class DevicesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Dispositivo encontrado' })
   @ApiResponse({ status: 404, description: 'Dispositivo no encontrado' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.devicesService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.devicesService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -59,8 +53,9 @@ export class DevicesController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDeviceDto: UpdateDeviceDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.devicesService.update(id, updateDeviceDto);
+    return this.devicesService.update(id, updateDeviceDto, user);
   }
 
   @Delete(':id')
@@ -68,7 +63,7 @@ export class DevicesController {
   @ApiOperation({ summary: 'Eliminar dispositivo' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Dispositivo eliminado' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.devicesService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.devicesService.remove(id, user);
   }
 }

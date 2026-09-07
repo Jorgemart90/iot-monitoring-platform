@@ -4,8 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { User } from './user.entity';
 
 export enum AlertCondition {
   GREATER_THAN = 'GREATER_THAN',
@@ -35,9 +38,19 @@ export class AlertRule {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ApiProperty({ description: 'Null = aplica a todos los dispositivos', required: false })
+  @ApiProperty({
+    description: 'Null = aplica a todos los dispositivos',
+    required: false,
+  })
   @Column({ name: 'device_id', nullable: true })
   deviceId: string;
+
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
+  ownerId: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'owner_id' })
+  owner: User | null;
 
   @ApiProperty({ description: 'Campo a evaluar (ej: temperature, humidity)' })
   @Column({ name: 'metric_field', length: 100 })
@@ -52,7 +65,13 @@ export class AlertRule {
   threshold: number;
 
   @ApiProperty({ description: 'Usado para condición BETWEEN', required: false })
-  @Column({ name: 'threshold_max', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'threshold_max',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   thresholdMax: number;
 
   @ApiProperty({ enum: AlertSeverity })

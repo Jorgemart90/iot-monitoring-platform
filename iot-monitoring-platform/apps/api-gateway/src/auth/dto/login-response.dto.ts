@@ -7,7 +7,14 @@ class UserDto {
   @ApiProperty({ example: 'admin', description: 'Nombre de usuario' })
   username: string;
 
-  @ApiProperty({ example: 'admin', description: 'Rol del usuario', enum: ['admin', 'viewer'] })
+  @ApiProperty({ example: 'Platform Administrator' })
+  name: string;
+
+  @ApiProperty({
+    example: 'MASTER',
+    description: 'Rol del usuario',
+    enum: ['MASTER', 'DEMO'],
+  })
   role: string;
 }
 
@@ -17,6 +24,12 @@ export class LoginResponseDto {
     description: 'JWT token. Usar como: Authorization: Bearer <token>',
   })
   access_token: string;
+
+  @ApiProperty({
+    example: 900,
+    description: 'Duración del access token en segundos',
+  })
+  expires_in: number;
 
   @ApiProperty({ type: UserDto, description: 'Datos del usuario autenticado' })
   user: UserDto;

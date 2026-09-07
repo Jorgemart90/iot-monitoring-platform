@@ -5,6 +5,8 @@ import { Device } from './entities/device.entity';
 import { DeviceReading } from './entities/device-reading.entity';
 import { AlertRule } from './entities/alert-rule.entity';
 import { Alert } from './entities/alert.entity';
+import { User } from './entities/user.entity';
+import { Session } from './entities/session.entity';
 
 @Module({
   imports: [
@@ -17,7 +19,7 @@ import { Alert } from './entities/alert.entity';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [Device, DeviceReading, AlertRule, Alert],
+        entities: [Device, DeviceReading, AlertRule, Alert, User, Session],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),

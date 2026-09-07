@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { DeviceReading } from './device-reading.entity';
+import { User } from './user.entity';
 
 export enum DeviceType {
   TEMPERATURE_SENSOR = 'TEMPERATURE_SENSOR',
@@ -46,6 +49,22 @@ export class Device {
   @ApiProperty({ description: 'Metadatos adicionales', required: false })
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
+
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
+  ownerId: string | null;
+
+  @ManyToOne(() => User, (user) => user.devices, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'owner_id' })
+  owner: User | null;
+
+  @Column({ name: 'is_demo', default: false })
+  isDemo: boolean;
+
+  @Column({ name: 'last_seen_at', type: 'timestamptz', nullable: true })
+  lastSeenAt: Date | null;
 
   @ApiProperty({ description: 'Fecha de creación' })
   @CreateDateColumn({ name: 'created_at' })

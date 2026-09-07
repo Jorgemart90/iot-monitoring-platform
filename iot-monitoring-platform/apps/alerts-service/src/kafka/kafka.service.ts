@@ -55,6 +55,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
                     alertId: alert.id,
                     deviceId: alert.deviceId,
                     ruleId: alert.ruleId,
+                    ownerId: rule.ownerId,
                     message: alert.message,
                     severity: alert.severity,
                     triggeredAt: alert.triggeredAt,

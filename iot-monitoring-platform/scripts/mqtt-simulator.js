@@ -24,10 +24,9 @@ const INTERVAL_MS       = parseInt(process.argv[3] || '2000', 10);
 // ─── API helpers (Node 18+ fetch nativo) ───────────────────────────────────
 
 async function login() {
-  const res = await fetch(`${API_GATEWAY_URL}/api/v1/auth/login`, {
+  const res = await fetch(`${API_GATEWAY_URL}/api/v1/auth/demo`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
   });
   if (!res.ok) throw new Error(`Login failed: ${res.status} ${await res.text()}`);
   const { access_token } = await res.json();
@@ -85,6 +84,10 @@ function generateReading(deviceId) {
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (DEVICE_COUNT > 3) {
+    console.error('[Simulator] La sesión demo permite máximo 3 dispositivos.');
+    process.exit(1);
+  }
   console.log(`[Simulator] Iniciando con ${DEVICE_COUNT} dispositivos...`);
 
   // 1. Login

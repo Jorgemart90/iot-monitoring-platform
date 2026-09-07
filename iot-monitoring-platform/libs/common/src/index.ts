@@ -3,4 +3,5 @@ export * from './dto';
 export * from './filters';
 export * from './interceptors';
 export * from './interfaces';
+export * from './auth';
 export * from './constants';

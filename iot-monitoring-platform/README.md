@@ -75,9 +75,17 @@ node scripts/mqtt-simulator.js 3 2000
 
 ## API Endpoints
 
-### Auth (API Gateway :3000)
-- `POST /api/v1/auth/login` — Get JWT token (user: admin, pass: admin123)
+### Auth and sessions (API Gateway :3000)
+- `POST /api/v1/auth/login` — Sign in as the configured master user
+- `POST /api/v1/auth/demo` — Create a temporary, limited demo session
+- `POST /api/v1/auth/refresh` — Rotate the refresh token and renew access
+- `POST /api/v1/auth/logout` — Revoke the current session
+- `GET /api/v1/auth/me` — Current authenticated identity
+- `GET /api/v1/auth/sessions` — Current user's sessions
+- `DELETE /api/v1/auth/sessions/:id` — Revoke one session
 - `GET /api/v1/health` — Health check
+
+See [`docs/SECURITY.md`](docs/SECURITY.md) for roles, token handling and demo isolation.
 
 ### Devices (:3001)
 - `POST /api/v1/devices` — Register device
@@ -111,9 +119,9 @@ El API Gateway fusiona dinámicamente los specs de los 5 servicios — auth, dev
 
 1. Abre **`http://localhost:3000/api/docs`**
 2. Expande **`POST /api/v1/auth/login`** → clic en **"Try it out"**
-3. Ejecuta con:
+3. Ejecuta con los valores `MASTER_USERNAME` y `MASTER_PASSWORD` de tu archivo `.env`:
    ```json
-   { "username": "admin", "password": "admin123" }
+   { "username": "admin", "password": "change-this-master-password" }
    ```
 4. Copia el valor de `access_token` de la respuesta
 5. Haz clic en el botón **"Authorize"** 🔒 (arriba a la derecha)
@@ -173,7 +181,7 @@ node scripts/mqtt-simulator.js 3 2000
 # 3 dispositivos, publicando cada 2 segundos
 ```
 
-El simulador registra automáticamente los dispositivos faltantes via API antes de publicar por MQTT.
+El simulador crea automáticamente una sesión `DEMO`, registra hasta 3 dispositivos propios y publica por MQTT.
 
 ---
 

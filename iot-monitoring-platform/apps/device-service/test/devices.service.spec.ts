@@ -1,8 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DevicesService } from '../src/devices/devices.service';
 import { Device, DeviceReading, DeviceType, DeviceStatus } from '@app/database';
+import { UserRole } from '@app/database';
+import { AuthUser } from '@app/common';
+import { DataSource } from 'typeorm';
+
+const masterUser: AuthUser = {
+  userId: 'master-1',
+  username: 'admin',
+  role: UserRole.MASTER,
+  sessionId: 'session-1',
+};
+
+const demoUser: AuthUser = {
+  userId: 'demo-1',
+  username: 'demo-ABC123',
+  role: UserRole.DEMO,
+  sessionId: 'session-demo',
+};
 
 const mockDevice: Device = {
   id: 'uuid-1',
@@ -11,6 +28,10 @@ const mockDevice: Device = {
   status: DeviceStatus.ACTIVE,
   location: 'Lab A',
   metadata: {},
+  ownerId: 'master-1',
+  owner: null,
+  isDemo: false,
+  lastSeenAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   readings: [],
@@ -22,6 +43,7 @@ const mockRepository = {
   findOne: jest.fn(),
   findAndCount: jest.fn(),
   remove: jest.fn(),
+  count: jest.fn(),
 };
 
 const mockDataSource = {
@@ -45,8 +67,11 @@ describe('DevicesService', () => {
       providers: [
         DevicesService,
         { provide: getRepositoryToken(Device), useValue: mockRepository },
-        { provide: getRepositoryToken(DeviceReading), useValue: mockRepository },
-        { provide: 'DataSource', useValue: mockDataSource },
+        {
+          provide: getRepositoryToken(DeviceReading),
+          useValue: mockRepository,
+        },
+        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
@@ -58,18 +83,28 @@ describe('DevicesService', () => {
   describe('create', () => {
     it('should create a device using a transaction', async () => {
       mockRepository.create.mockReturnValue(mockDevice);
-      const result = await service.create({
-        name: 'Test Sensor',
-        type: DeviceType.MULTI_SENSOR,
-      });
+      const result = await service.create(
+        {
+          name: 'Test Sensor',
+          type: DeviceType.MULTI_SENSOR,
+        },
+        masterUser,
+      );
       expect(result).toEqual(mockDevice);
+    });
+
+    it('limits demo users to three devices', async () => {
+      mockRepository.count.mockResolvedValue(3);
+      await expect(
+        service.create({ name: 'Fourth sensor', type: DeviceType.MULTI_SENSOR }, demoUser),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('findAll', () => {
     it('should return paginated devices', async () => {
       mockRepository.findAndCount.mockResolvedValue([[mockDevice], 1]);
-      const result = await service.findAll({ page: 1, limit: 10 });
+      const result = await service.findAll({ page: 1, limit: 10 }, masterUser);
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
       expect(result.meta.totalPages).toBe(1);
@@ -79,13 +114,13 @@ describe('DevicesService', () => {
   describe('findOne', () => {
     it('should return a device by id', async () => {
       mockRepository.findOne.mockResolvedValue(mockDevice);
-      const result = await service.findOne('uuid-1');
+      const result = await service.findOne('uuid-1', masterUser);
       expect(result).toEqual(mockDevice);
     });
 
     it('should throw NotFoundException when device not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
-      await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('non-existent', masterUser)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -93,7 +128,7 @@ describe('DevicesService', () => {
     it('should update a device', async () => {
       mockRepository.findOne.mockResolvedValue({ ...mockDevice });
       mockRepository.save.mockResolvedValue({ ...mockDevice, name: 'Updated' });
-      const result = await service.update('uuid-1', { name: 'Updated' });
+      const result = await service.update('uuid-1', { name: 'Updated' }, masterUser);
       expect(result.name).toBe('Updated');
     });
   });
@@ -102,7 +137,7 @@ describe('DevicesService', () => {
     it('should remove a device', async () => {
       mockRepository.findOne.mockResolvedValue(mockDevice);
       mockRepository.remove.mockResolvedValue(undefined);
-      await expect(service.remove('uuid-1')).resolves.toBeUndefined();
+      await expect(service.remove('uuid-1', masterUser)).resolves.toBeUndefined();
     });
   });
 });

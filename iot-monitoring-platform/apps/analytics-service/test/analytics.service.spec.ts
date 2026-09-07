@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DeviceReading } from '@app/database';
+import { Device, DeviceReading } from '@app/database';
 import { AnalyticsService } from '../src/analytics/analytics.service';
 import { MetricsProcessor } from '../src/analytics/strategies/metrics-processor';
 import { TemperatureStrategy } from '../src/analytics/strategies/temperature.strategy';
 import { HumidityStrategy } from '../src/analytics/strategies/humidity.strategy';
 import { PressureStrategy } from '../src/analytics/strategies/pressure.strategy';
-import { MetricResult } from '../src/analytics/strategies/metrics.strategy.interface';
+import { RedisService } from '../src/redis/redis.service';
 
 const mockRedisService = {
   hgetall: jest.fn(),
@@ -16,6 +16,8 @@ const mockRedisService = {
 const mockReadingRepository = {
   findAndCount: jest.fn(),
 };
+
+const mockDeviceRepository = { exist: jest.fn() };
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
@@ -29,8 +31,12 @@ describe('AnalyticsService', () => {
         TemperatureStrategy,
         HumidityStrategy,
         PressureStrategy,
-        { provide: getRepositoryToken(DeviceReading), useValue: mockReadingRepository },
-        { provide: 'RedisService', useValue: mockRedisService },
+        {
+          provide: getRepositoryToken(DeviceReading),
+          useValue: mockReadingRepository,
+        },
+        { provide: getRepositoryToken(Device), useValue: mockDeviceRepository },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 

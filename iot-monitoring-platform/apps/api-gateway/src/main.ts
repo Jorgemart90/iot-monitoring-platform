@@ -10,15 +10,15 @@ import { LoggingInterceptor } from '@app/common/interceptors';
 // publicUrl: URL que el BROWSER usa para hacer los requests (siempre localhost desde la máquina host)
 const SERVICES = [
   {
-    fetchBase: process.env.DEVICE_SERVICE_URL       ?? 'http://localhost:3001',
+    fetchBase: process.env.DEVICE_SERVICE_URL ?? 'http://localhost:3001',
     publicUrl: process.env.DEVICE_SERVICE_PUBLIC_URL ?? 'http://localhost:3001',
   },
   {
-    fetchBase: process.env.ANALYTICS_SERVICE_URL    ?? 'http://localhost:3002',
+    fetchBase: process.env.ANALYTICS_SERVICE_URL ?? 'http://localhost:3002',
     publicUrl: process.env.ANALYTICS_SERVICE_PUBLIC_URL ?? 'http://localhost:3002',
   },
   {
-    fetchBase: process.env.ALERTS_SERVICE_URL       ?? 'http://localhost:3003',
+    fetchBase: process.env.ALERTS_SERVICE_URL ?? 'http://localhost:3003',
     publicUrl: process.env.ALERTS_SERVICE_PUBLIC_URL ?? 'http://localhost:3003',
   },
   {
@@ -51,10 +51,7 @@ function mergeInto(
   return base;
 }
 
-async function buildMergedDoc(
-  gatewayDoc: OpenAPIObject,
-  logger: Logger,
-): Promise<OpenAPIObject> {
+async function buildMergedDoc(gatewayDoc: OpenAPIObject, logger: Logger): Promise<OpenAPIObject> {
   const results = await Promise.all(
     SERVICES.map(async ({ fetchBase, publicUrl }) => {
       const url = `${fetchBase}/api/docs-json`;
@@ -74,8 +71,7 @@ async function buildMergedDoc(
   );
 
   return results.reduce(
-    (acc: OpenAPIObject, result) =>
-      result ? mergeInto(acc, result.doc, result.publicUrl) : acc,
+    (acc: OpenAPIObject, result) => (result ? mergeInto(acc, result.doc, result.publicUrl) : acc),
     JSON.parse(JSON.stringify(gatewayDoc)) as OpenAPIObject,
   );
 }
@@ -85,7 +81,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');
-  app.enableCors();
+  app.enableCors({
+    origin: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:3000').split(','),
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AlertRule } from '@app/database';
+import { AlertRule, Device } from '@app/database';
 import { RulesController } from './rules.controller';
 import { RulesService } from './rules.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AlertRule])],
+  imports: [TypeOrmModule.forFeature([AlertRule, Device])],
   controllers: [RulesController],
   providers: [RulesService],
   exports: [RulesService],

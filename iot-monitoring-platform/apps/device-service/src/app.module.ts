@@ -4,6 +4,8 @@ import { DatabaseModule } from '@app/database';
 import { DevicesModule } from './devices/devices.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { KafkaModule } from './kafka/kafka.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard, JwtSecurityModule } from '@app/common';
 
 @Module({
   imports: [
@@ -12,9 +14,11 @@ import { KafkaModule } from './kafka/kafka.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    JwtSecurityModule,
     DevicesModule,
     MqttModule,
     KafkaModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}

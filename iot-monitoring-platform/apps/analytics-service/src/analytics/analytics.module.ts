@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DeviceReading } from '@app/database';
+import { Device, DeviceReading } from '@app/database';
 import { RedisModule } from '../redis/redis.module';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
@@ -10,7 +10,7 @@ import { HumidityStrategy } from './strategies/humidity.strategy';
 import { PressureStrategy } from './strategies/pressure.strategy';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DeviceReading]), RedisModule],
+  imports: [TypeOrmModule.forFeature([Device, DeviceReading]), RedisModule],
   controllers: [AnalyticsController],
   providers: [
     AnalyticsService,

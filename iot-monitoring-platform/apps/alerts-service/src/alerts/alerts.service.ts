@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Alert, AlertStatus } from '@app/database';
-import { PaginationDto } from '@app/common';
+import { Alert, AlertStatus, UserRole } from '@app/database';
+import { AuthUser, PaginationDto } from '@app/common';
 import { AlertRule } from '@app/database';
 
 @Injectable()
@@ -33,35 +33,39 @@ export class AlertsService {
     return saved;
   }
 
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto, user: AuthUser) {
     const { page = 1, limit = 10 } = paginationDto;
     const [data, total] = await this.alertRepository.findAndCount({
+      where: user.role === UserRole.MASTER ? {} : { rule: { ownerId: user.userId } },
       skip: (page - 1) * limit,
       take: limit,
       order: { triggeredAt: 'DESC' },
       relations: ['rule'],
     });
-    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
-  async findOne(id: string): Promise<Alert> {
+  async findOne(id: string, user: AuthUser): Promise<Alert> {
     const alert = await this.alertRepository.findOne({
-      where: { id },
+      where: user.role === UserRole.MASTER ? { id } : { id, rule: { ownerId: user.userId } },
       relations: ['rule'],
     });
     if (!alert) throw new NotFoundException(`Alert ${id} not found`);
     return alert;
   }
 
-  async acknowledge(id: string): Promise<Alert> {
-    const alert = await this.findOne(id);
+  async acknowledge(id: string, user: AuthUser): Promise<Alert> {
+    const alert = await this.findOne(id, user);
     alert.status = AlertStatus.ACKNOWLEDGED;
     alert.acknowledgedAt = new Date();
     return this.alertRepository.save(alert);
   }
 
-  async resolve(id: string): Promise<Alert> {
-    const alert = await this.findOne(id);
+  async resolve(id: string, user: AuthUser): Promise<Alert> {
+    const alert = await this.findOne(id, user);
     alert.status = AlertStatus.RESOLVED;
     alert.resolvedAt = new Date();
     return this.alertRepository.save(alert);
