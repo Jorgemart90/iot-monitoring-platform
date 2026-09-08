@@ -240,6 +240,24 @@ services:
     networks:
       - iot-network
 
+  # Frontend (React → Nginx reverse proxy)
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: iot-frontend
+    ports:
+      - "3005:80"
+    depends_on:
+      - api-gateway
+      - device-service
+      - analytics-service
+      - alerts-service
+      - notification-service
+    networks:
+      - iot-network
+    restart: unless-stopped
+
 networks:
   iot-network:
     driver: bridge

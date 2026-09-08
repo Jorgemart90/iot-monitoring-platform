@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +24,13 @@ export class DevicesService {
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto): Promise<Device> {
+    const existing = await this.deviceRepository.findOne({
+      where: { name: createDeviceDto.name },
+    });
+    if (existing) {
+      throw new ConflictException(`Device with name "${createDeviceDto.name}" already exists`);
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -74,6 +82,14 @@ export class DevicesService {
 
   async update(id: string, updateDeviceDto: UpdateDeviceDto): Promise<Device> {
     const device = await this.findOne(id);
+    if (updateDeviceDto.name && updateDeviceDto.name !== device.name) {
+      const existing = await this.deviceRepository.findOne({
+        where: { name: updateDeviceDto.name },
+      });
+      if (existing) {
+        throw new ConflictException(`Device with name "${updateDeviceDto.name}" already exists`);
+      }
+    }
     Object.assign(device, updateDeviceDto);
     return this.deviceRepository.save(device);
   }

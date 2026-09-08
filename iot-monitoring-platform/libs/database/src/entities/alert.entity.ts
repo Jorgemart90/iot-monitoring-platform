@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { AlertRule, AlertSeverity } from './alert-rule.entity';
@@ -16,17 +17,21 @@ export enum AlertStatus {
 }
 
 @Entity('alerts')
+// El dashboard filtra por estado y ordena por fecha en cada carga.
+// Nombres explícitos para que las migraciones no dependan del hash de TypeORM.
+@Index('idx_alerts_status', ['status'])
+@Index('idx_alerts_triggered_at', ['triggeredAt'])
 export class Alert {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ApiProperty()
-  @Column({ name: 'rule_id' })
+  @Column({ name: 'rule_id', type: 'uuid' })
   ruleId: string;
 
   @ApiProperty()
-  @Column({ name: 'device_id' })
+  @Column({ name: 'device_id', type: 'uuid' })
   deviceId: string;
 
   @ApiProperty()

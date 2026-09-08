@@ -28,7 +28,7 @@ export class AlertRule {
   id: string;
 
   @ApiProperty()
-  @Column({ length: 255 })
+  @Column({ length: 255, unique: true })
   name: string;
 
   @ApiProperty({ required: false })
@@ -36,7 +36,7 @@ export class AlertRule {
   description: string;
 
   @ApiProperty({ description: 'Null = aplica a todos los dispositivos', required: false })
-  @Column({ name: 'device_id', nullable: true })
+  @Column({ name: 'device_id', type: 'uuid', nullable: true })
   deviceId: string;
 
   @ApiProperty({ description: 'Campo a evaluar (ej: temperature, humidity)' })

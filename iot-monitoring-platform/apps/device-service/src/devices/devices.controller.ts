@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,16 +23,21 @@ import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { PaginationDto } from '@app/common';
+import { JwtAuthGuard, RolesGuard, Roles } from '@app/common';
+import { UserRole } from '@app/database';
 
 @ApiTags('devices')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('devices')
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Registrar nuevo dispositivo IoT' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Registrar nuevo dispositivo IoT (solo admin)' })
   @ApiResponse({ status: 201, description: 'Dispositivo creado exitosamente' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol admin' })
   create(@Body() createDeviceDto: CreateDeviceDto) {
     return this.devicesService.create(createDeviceDto);
   }
@@ -53,9 +59,11 @@ export class DevicesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar dispositivo' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Actualizar dispositivo (solo admin)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Dispositivo actualizado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol admin' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDeviceDto: UpdateDeviceDto,
@@ -64,10 +72,12 @@ export class DevicesController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar dispositivo' })
+  @ApiOperation({ summary: 'Eliminar dispositivo (solo admin)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Dispositivo eliminado' })
+  @ApiResponse({ status: 403, description: 'Se requiere rol admin' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.devicesService.remove(id);
   }

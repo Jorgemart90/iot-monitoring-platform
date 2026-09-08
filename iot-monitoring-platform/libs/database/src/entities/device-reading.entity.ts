@@ -10,12 +10,14 @@ import {
 import { Device } from './device.entity';
 
 @Entity('device_readings')
-@Index(['deviceId', 'timestamp'])
+// Índice nombrado explícitamente: si se deja que TypeORM genere el nombre (IDX_<hash>),
+// las migraciones y `migration:generate` divergen entre entornos.
+@Index('idx_device_readings_device_timestamp', ['deviceId', 'timestamp'])
 export class DeviceReading {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'device_id' })
+  @Column({ name: 'device_id', type: 'uuid' })
   deviceId: string;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })

@@ -10,20 +10,24 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { RulesService } from './rules.service';
 import { CreateRuleDto } from './dto/create-rule.dto';
 import { UpdateRuleDto } from './dto/update-rule.dto';
-import { PaginationDto } from '@app/common';
+import { PaginationDto, JwtAuthGuard, RolesGuard, Roles } from '@app/common';
+import { UserRole } from '@app/database';
 
 @ApiTags('alerts')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('rules')
 export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Crear nueva regla de alerta' })
   @ApiResponse({ status: 201, description: 'Regla creada exitosamente' })
   create(@Body() createRuleDto: CreateRuleDto) {
@@ -44,6 +48,7 @@ export class RulesController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Actualizar regla de alerta' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   update(
@@ -54,6 +59,7 @@ export class RulesController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar regla de alerta' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })

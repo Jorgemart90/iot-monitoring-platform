@@ -28,7 +28,7 @@ export class Device {
   id: string;
 
   @ApiProperty({ description: 'Nombre del dispositivo' })
-  @Column({ length: 255 })
+  @Column({ length: 255, unique: true })
   name: string;
 
   @ApiProperty({ enum: DeviceType, description: 'Tipo de dispositivo' })

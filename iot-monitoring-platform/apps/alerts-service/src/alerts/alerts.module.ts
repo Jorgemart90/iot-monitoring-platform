@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Alert } from '@app/database';
 import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
+import { AlertAuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Alert])],
+  imports: [TypeOrmModule.forFeature([Alert]), AlertAuthModule],
   controllers: [AlertsController],
   providers: [AlertsService],
   exports: [AlertsService],

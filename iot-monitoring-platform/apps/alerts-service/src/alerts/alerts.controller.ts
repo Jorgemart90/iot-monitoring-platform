@@ -7,13 +7,16 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { AlertsService } from './alerts.service';
-import { PaginationDto } from '@app/common';
+import { PaginationDto, JwtAuthGuard, RolesGuard, Roles } from '@app/common';
+import { UserRole } from '@app/database';
 
 @ApiTags('alerts')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('alerts')
 export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
@@ -33,6 +36,7 @@ export class AlertsController {
   }
 
   @Patch(':id/acknowledge')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Marcar alerta como reconocida' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Alerta reconocida' })
@@ -41,6 +45,7 @@ export class AlertsController {
   }
 
   @Patch(':id/resolve')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Marcar alerta como resuelta' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Alerta resuelta' })

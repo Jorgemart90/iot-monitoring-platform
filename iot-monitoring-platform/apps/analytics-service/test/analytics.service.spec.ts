@@ -6,7 +6,7 @@ import { MetricsProcessor } from '../src/analytics/strategies/metrics-processor'
 import { TemperatureStrategy } from '../src/analytics/strategies/temperature.strategy';
 import { HumidityStrategy } from '../src/analytics/strategies/humidity.strategy';
 import { PressureStrategy } from '../src/analytics/strategies/pressure.strategy';
-import { MetricResult } from '../src/analytics/strategies/metrics.strategy.interface';
+import { RedisService } from '../src/redis/redis.service';
 
 const mockRedisService = {
   hgetall: jest.fn(),
@@ -30,7 +30,7 @@ describe('AnalyticsService', () => {
         HumidityStrategy,
         PressureStrategy,
         { provide: getRepositoryToken(DeviceReading), useValue: mockReadingRepository },
-        { provide: 'RedisService', useValue: mockRedisService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
@@ -68,7 +68,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should handle missing fields gracefully', () => {
-      const reading = { deviceId: 'dev-1', temperature: 25 }; // no humidity
+      const reading = { deviceId: 'dev-1', temperature: 25 };
       const result = processor.processReading(reading, new Map());
 
       expect(result.has('temperature')).toBe(true);

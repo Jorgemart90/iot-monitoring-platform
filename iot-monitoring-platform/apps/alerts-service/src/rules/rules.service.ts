@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AlertRule, AlertCondition } from '@app/database';
@@ -23,6 +23,12 @@ export class RulesService {
   ) {}
 
   async create(createRuleDto: CreateRuleDto): Promise<AlertRule> {
+    const existing = await this.ruleRepository.findOne({
+      where: { name: createRuleDto.name },
+    });
+    if (existing) {
+      throw new ConflictException(`Alert rule with name "${createRuleDto.name}" already exists`);
+    }
     const rule = this.ruleRepository.create(createRuleDto);
     return this.ruleRepository.save(rule);
   }
@@ -45,6 +51,14 @@ export class RulesService {
 
   async update(id: string, updateRuleDto: UpdateRuleDto): Promise<AlertRule> {
     const rule = await this.findOne(id);
+    if (updateRuleDto.name && updateRuleDto.name !== rule.name) {
+      const existing = await this.ruleRepository.findOne({
+        where: { name: updateRuleDto.name },
+      });
+      if (existing) {
+        throw new ConflictException(`Alert rule with name "${updateRuleDto.name}" already exists`);
+      }
+    }
     Object.assign(rule, updateRuleDto);
     return this.ruleRepository.save(rule);
   }
