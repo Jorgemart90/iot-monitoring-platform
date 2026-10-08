@@ -15,6 +15,7 @@ Consulta [la guía del frontend](docs/FRONTEND.md) para desarrollo local, sesion
 ## Tech Stack
 
 - **Framework**: NestJS (monorepo)
+- **Frontend**: Angular 21 standalone components, served by the Docker frontend container
 - **Database**: PostgreSQL + TypeORM
 - **Message Broker**: Apache Kafka
 - **IoT Protocol**: MQTT (Mosquitto)
@@ -35,6 +36,7 @@ IoT Devices → MQTT → Device Service → Kafka → Analytics Service
 
 | Service | Port | Description |
 |---------|------|-------------|
+| frontend | 5173 | Angular dashboard, demo flow, and admin UI |
 | api-gateway | 3000 | JWT auth, Swagger docs, routing |
 | device-service | 3001 | CRUD devices, MQTT consumer, Kafka producer |
 | analytics-service | 3002 | Kafka consumer, Strategy Pattern metrics, Redis cache |
@@ -44,9 +46,8 @@ IoT Devices → MQTT → Device Service → Kafka → Analytics Service
 ## Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+
-- npm 9+
+- Docker Desktop with Docker Compose v2
+- Node.js compatible with Angular 21 and npm 9+ for local development only (see the [frontend guide](docs/FRONTEND.md))
 
 ### 1. Clone and setup
 ```bash
@@ -55,33 +56,52 @@ cd iot-monitoring-platform
 cp .env.example .env
 ```
 
-### 2. Start infrastructure
+On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`. Set `MASTER_USERNAME` and `MASTER_PASSWORD` in `.env`; keep an existing `.env` rather than overwriting it.
+
+### 2. Build and start the complete platform
 ```bash
-docker compose up -d postgres redis kafka mosquitto zookeeper
+docker compose -p iot-demo-auth up -d --build
+docker compose -p iot-demo-auth ps
 ```
 
-### 3. Install dependencies
-```bash
-npm install
-```
+### 3. Open the application
+- **Frontend**: http://localhost:5173
+- **API documentation**: http://localhost:3000/api/docs
+- **Kafka UI**: http://localhost:8081
+- **Adminer**: http://localhost:8080
 
-### 4. Run a service locally (development)
+Choose **Crear mi demo** for a temporary DEMO session, or **Administrador** to sign in with the MASTER credentials from `.env`. The [frontend guide](docs/FRONTEND.md) covers the guided flow, account limits, and browser tests.
+
+### 4. Run the frontend locally (optional)
+With the Docker stack running, start Angular's development server:
 ```bash
+cd apps/frontend
+npm ci
+npm start
+```
+In PowerShell, use `npm.cmd ci` and `npm.cmd start`. Open http://localhost:4200; the dev server proxies API, cookie, and SSE requests to the Docker stack.
+
+To develop NestJS services locally, start their infrastructure dependencies and install the root dependencies:
+```bash
+docker compose -p iot-demo-auth up -d postgres redis kafka mosquitto zookeeper
+npm ci
 npm run start:api-gateway
 # In another terminal:
 npm run start:device-service
 ```
+Use the other `start:*` scripts in `package.json` for additional services.
 
-### 5. Or run everything with Docker
-```bash
-docker compose up --build
-```
-
-### 6. Run the IoT simulator
+### 5. Run the IoT simulator
 ```bash
 node scripts/mqtt-simulator.js 3 2000
 # Simulates 3 devices publishing every 2 seconds
 ```
+
+### Stop the platform
+```bash
+docker compose -p iot-demo-auth down
+```
+The database volume is retained. Add `-v` only when you intentionally want to delete persisted data.
 
 ## API Endpoints
 
