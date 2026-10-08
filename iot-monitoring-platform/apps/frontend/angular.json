@@ -1,0 +1,34 @@
+﻿{
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "pulse": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/pulse",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.json",
+            "styles": ["src/styles.css"],
+            "optimization": {
+              "scripts": true,
+              "styles": { "minify": true, "inlineCritical": false }
+            },
+            "outputHashing": "all",
+            "budgets": [{ "type": "initial", "maximumWarning": "650kB", "maximumError": "1MB" }]
+          }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": { "buildTarget": "pulse:build" }
+        }
+      }
+    }
+  },
+  "cli": { "analytics": false }
+}

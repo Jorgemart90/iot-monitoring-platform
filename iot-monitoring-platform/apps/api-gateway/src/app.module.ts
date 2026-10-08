@@ -19,6 +19,6 @@ import { UsersModule } from './users/users.module';
     UsersModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [{ provide: APP_GUARD, useExisting: JwtAuthGuard }],
 })
 export class AppModule {}

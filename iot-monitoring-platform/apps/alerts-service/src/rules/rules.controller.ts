@@ -24,7 +24,7 @@ export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear nueva regla de alerta' })
+  @ApiOperation({ summary: 'Crear regla por zona y selección de dispositivos con umbral o rango' })
   @ApiResponse({ status: 201, description: 'Regla creada exitosamente' })
   create(@Body() createRuleDto: CreateRuleDto, @CurrentUser() user: AuthUser) {
     return this.rulesService.create(createRuleDto, user);
@@ -44,7 +44,7 @@ export class RulesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar regla de alerta' })
+  @ApiOperation({ summary: 'Actualizar alcance, rango, mensaje, color o estado de una regla' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   update(
     @Param('id', ParseUUIDPipe) id: string,

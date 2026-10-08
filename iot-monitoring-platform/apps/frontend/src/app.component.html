@@ -1,0 +1,664 @@
+@if (!s.ready()) {
+  <div class="boot">Conectando con tu espacio…</div>
+} @else if (!s.user()) {
+  <p-login />
+} @else {
+  <div class="workspace">
+    <aside class="sidebar">
+      <button class="brand" (click)="tab.set('overview')" aria-label="Pulse, ir al resumen">
+        <p-icon name="pulse" /><span>pulse<span class="brand-dot">.</span></span>
+      </button>
+      <div class="workspace-label">
+        TU ESPACIO <span>{{ s.user()?.role }}</span>
+      </div>
+      <nav aria-label="Navegación principal">
+        @for (n of nav; track n.id) {
+          @if (n.id !== 'users' || s.user()?.role === 'MASTER') {
+            <button
+              [class.active]="tab() === n.id"
+              [attr.aria-current]="tab() === n.id ? 'page' : null"
+              (click)="tab.set(n.id)"
+            >
+              <p-icon [name]="n.icon" /><span>{{ n.label }}</span>
+              @if (n.id === 'alerts') {
+                <b>{{ pending }}</b>
+              }
+            </button>
+          }
+        }
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="demo-note">
+          <p-icon name="pulse" /><strong>{{
+            s.user()?.role === 'DEMO' ? 'Tu laboratorio IoT' : 'Vista de administrador'
+          }}</strong>
+          <p>
+            {{
+              s.user()?.role === 'DEMO'
+                ? 'Experimenta con tus sensores y observa cada cambio.'
+                : 'Visibilidad de todos los dispositivos y usuarios.'
+            }}
+          </p>
+        </div>
+        <div class="identity">
+          <span class="avatar">{{ s.user()?.role === 'MASTER' ? 'JM' : 'DE' }}</span>
+          <div>
+            <strong>{{ s.user()?.username }}</strong
+            ><small>{{ s.user()?.role === 'MASTER' ? 'Administrador' : 'Visitante demo' }}</small>
+          </div>
+          <button class="icon-button" (click)="logout()" aria-label="Cerrar sesión">
+            <p-icon name="logout" />
+          </button>
+        </div>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <span
+          >Workspace <span class="slash">/</span> <b>{{ tabLabel }}</b></span
+        >
+        <div class="topbar-right">
+          <span class="connection" [class.online]="s.connected()"
+            ><span class="live-dot"></span
+            >{{ s.connected() ? 'Alertas en vivo' : 'Reconectando alertas…' }}</span
+          ><span class="date-label">MONITOREO IoT</span>
+        </div>
+      </header>
+      <div class="page">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">PULSE / LIVE MONITORING</span>
+            <h1>{{ title[0] }}</h1>
+            <p>{{ title[1] }}</p>
+          </div>
+          @if (tab() === 'overview' || tab() === 'devices' || tab() === 'rules') {
+            <button class="button primary" (click)="tab() === 'rules' ? openRule() : openDevice()">
+              <p-icon name="plus" />{{ tab() === 'rules' ? 'Nueva regla' : 'Nuevo dispositivo' }}
+            </button>
+          }
+        </div>
+        @if (s.error()) {
+          <div class="error-banner" role="alert">
+            {{ s.error() }} <button class="text-button" (click)="s.load()">Reintentar</button>
+          </div>
+        }
+        @switch (tab()) {
+          @case ('overview') {
+            <section class="guide" aria-label="Recorrido guiado" [attr.aria-busy]="s.guideBusy()">
+              <div class="guide-intro">
+                <span class="tag">{{
+                  s.guideStep() === 4 ? 'RECORRIDO COMPLETADO' : 'PASO ' + s.guideStep() + ' DE 3'
+                }}</span>
+                <h2>De un sensor a una decisión.</h2>
+                <p>
+                  {{
+                    s.guideStep() === 1
+                      ? 'Empieza creando el sensor de este recorrido. Tú avanzas cada paso.'
+                      : s.guideStep() === 2
+                        ? 'Sensor listo. Crea tres reglas: temperatura > 35 °C, humedad > 70 % y presión > 1050 hPa.'
+                        : s.guideStep() === 3
+                          ? 'Reglas listas. Envía 42 °C, 85 % y 1080 hPa y espera las tres alertas.'
+                          : 'Tu sensor generó las tres alertas. Ya puedes reconocerlas y resolverlas.'
+                  }}
+                </p>
+              </div>
+              <ol class="guide-steps" aria-label="Progreso del recorrido">
+                @for (step of [1, 2, 3]; track step) {
+                  <li
+                    class="guide-step"
+                    [class.done]="s.guideStep() > step"
+                    [class.current]="s.guideStep() === step"
+                    [attr.data-step]="step"
+                    [attr.aria-current]="s.guideStep() === step ? 'step' : null"
+                  >
+                    <span class="step-number">
+                      @if (s.guideStep() > step) {
+                        <p-icon name="check" />
+                      } @else {
+                        0{{ step }}
+                      }
+                    </span>
+                    <div>
+                      <strong>{{
+                        step === 1
+                          ? 'Crea un sensor'
+                          : step === 2
+                            ? 'Define tres reglas'
+                            : 'Recibe tres alertas'
+                      }}</strong>
+                      <small>{{
+                        s.guideStep() > step
+                          ? 'Completado'
+                          : s.guideStep() === step
+                            ? s.guideWaiting()
+                              ? 'Esperando alertas…'
+                              : 'Paso actual'
+                            : 'Pendiente'
+                      }}</small>
+                    </div>
+                  </li>
+                }
+              </ol>
+              <button
+                class="button dark"
+                [disabled]="working() || s.guideBusy()"
+                (click)="prepare()"
+              >
+                {{
+                  s.guideWaiting()
+                    ? 'Esperando alertas…'
+                    : s.guideBusy()
+                      ? 'Procesando…'
+                      : s.guideStep() === 1
+                        ? 'Preparar mi recorrido'
+                        : s.guideStep() === 2
+                          ? 'Crear reglas del recorrido'
+                          : s.guideStep() === 3
+                            ? 'Enviar lectura y recibir alertas'
+                            : 'Ver alertas del recorrido'
+                }}
+                <p-icon name="arrow" />
+              </button>
+              @if (s.guideError() && s.guideStep() !== 4) {
+                <p class="guide-error" role="alert">{{ s.guideError() }}</p>
+              }
+              @if (s.guideStep() === 4) {
+                <p class="guide-success" role="status">
+                  Los 3 pasos están completos. Confirmadas las alertas de temperatura, humedad y presión.
+                </p>
+              }
+            </section>
+            <div class="stats overview-stats">
+              <article>
+                <span>Dispositivos <p-icon name="sensor" /></span
+                ><strong
+                  >{{ d.devices.length
+                  }}<small>{{ s.user()?.role === 'DEMO' ? '/ 3' : '' }}</small></strong
+                >
+                <p>
+                  {{ activeCount }} activos · {{ d.devices.length - activeCount }} sin señal
+                  reciente
+                </p>
+                <small>Actividad: lectura recibida en los últimos 10 minutos</small>
+                @if (inactiveDevices.length) {
+                  <details class="device-review">
+                    <summary>Revisar sensores sin señal</summary>
+                    @for (device of inactiveDevices; track device.id) {
+                      <button class="text-button" (click)="viewDevice(device)">
+                        {{ device.name }} · {{ device.location || 'Sin zona'
+                        }}<small>Última señal: {{ date(device.lastSeenAt) }}</small>
+                      </button>
+                    }
+                  </details>
+                }
+              </article>
+              <article>
+                <span>Temperatura <p-icon name="thermo" /></span
+                ><strong
+                  >{{ s.formatTemperature(d.metrics['temperature']?.value)
+                  }}<small>°{{ s.unit() }}</small></strong
+                >
+                <p>
+                  {{ selectedDevice?.name || 'Selecciona un sensor' }} ·
+                  {{ selectedDevice?.location || 'Sin zona' }}
+                </p>
+                <small
+                  >{{
+                    selectedDevice && active(selectedDevice)
+                      ? 'Señal reciente'
+                      : 'Sin señal reciente'
+                  }}
+                  · {{ date(selectedDevice?.lastSeenAt) }}</small
+                >
+              </article>
+              <article>
+                <span>Humedad <p-icon name="drop" /></span
+                ><strong>{{ num(d.metrics['humidity']?.value) }}<small>%</small></strong>
+                <p>
+                  {{ selectedDevice?.name || 'Selecciona un sensor' }} ·
+                  {{ selectedDevice?.location || 'Sin zona' }}
+                </p>
+                <small
+                  >{{
+                    selectedDevice && active(selectedDevice)
+                      ? 'Señal reciente'
+                      : 'Sin señal reciente'
+                  }}
+                  · {{ date(selectedDevice?.lastSeenAt) }}</small
+                >
+              </article>
+              <article>
+                <span>Presión <p-icon name="pulse" /></span
+                ><strong>{{ num(d.metrics['pressure']?.value) }}<small>hPa</small></strong>
+                <p>
+                  {{ selectedDevice?.name || 'Selecciona un sensor' }} ·
+                  {{ selectedDevice?.location || 'Sin zona' }}
+                </p>
+                <small
+                  >{{
+                    selectedDevice && active(selectedDevice)
+                      ? 'Señal reciente'
+                      : 'Sin señal reciente'
+                  }}
+                  · {{ date(selectedDevice?.lastSeenAt) }}</small
+                >
+              </article>
+              <article>
+                <span>Alertas pendientes <p-icon name="bell" /></span
+                ><strong [class.orange-text]="pending"
+                  >{{ pending < 10 ? '0' : '' }}{{ pending }}</strong
+                >
+                <div class="severity-summary">
+                  @for (severity of severities; track severity) {
+                    <span [attr.data-severity]="severity"
+                      >{{ label(severity) }}:
+                      <b>{{ d.alertSummary.bySeverity[severity] || 0 }}</b></span
+                    >
+                  }
+                </div>
+                <small>Pendientes de reconocer · todas las fechas</small>
+              </article>
+            </div>
+            <div class="dashboard-grid"><p-sensor-history /><p-simulator /></div>
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Lo último en tu operación</h2>
+                  <p>Alertas recientes de tus dispositivos</p>
+                </div>
+                <button class="text-button" (click)="tab.set('alerts')">
+                  Ver todas <p-icon name="arrow" />
+                </button>
+              </div>
+              <p-alert-browser [compact]="true" />
+            </article>
+          }
+          @case ('devices') {
+            <div class="section-note">
+              <span class="badge"
+                >{{ d.devices.length
+                }}{{ s.user()?.role === 'DEMO' ? ' de 3' : '' }} dispositivos</span
+              >
+              <p>Selecciona un sensor para explorar sus métricas en el resumen.</p>
+            </div>
+            <div class="device-grid">
+              @for (device of d.devices; track device.id) {
+                <article class="panel device-card">
+                  <div class="card-top">
+                    <span class="device-icon"><p-icon name="sensor" /></span
+                    ><span class="badge" [class.green]="active(device)">{{
+                      active(device) ? 'Activo · últimos 10 min' : 'Sin señal reciente'
+                    }}</span>
+                  </div>
+                  <h2>{{ device.name }}</h2>
+                  <p>{{ device.location || 'Sin zona' }}</p>
+                  <dl>
+                    <div>
+                      <dt>Tipo</dt>
+                      <dd>{{ device.type.replaceAll('_', ' ') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Última señal</dt>
+                      <dd>{{ date(device.lastSeenAt) }}</dd>
+                    </div>
+                  </dl>
+                  <div class="card-actions">
+                    <button class="text-button" (click)="viewDevice(device)">
+                      Ver métricas <p-icon name="arrow" /></button
+                    ><button class="text-button" (click)="openDevice(device)">Editar</button
+                    ><button class="text-button danger" (click)="deleteDevice(device)">
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              } @empty {
+                <div class="empty wide">
+                  <p-icon name="sensor" />
+                  <h3>Aquí empieza tu monitoreo</h3>
+                  <p>Añade tu primer dispositivo para recibir lecturas.</p>
+                  <button class="button primary" (click)="openDevice()">
+                    Crear dispositivo <p-icon name="plus" />
+                  </button>
+                </div>
+              }
+            </div>
+          }
+          @case ('rules') {
+            <div class="section-note">
+              <span class="badge"
+                >{{ d.rules.length }}{{ s.user()?.role === 'DEMO' ? ' de 3' : '' }} reglas</span
+              >
+              <p>Las reglas activas evalúan cada nueva lectura de tus dispositivos.</p>
+            </div>
+            <div class="rule-list">
+              @for (rule of d.rules; track rule.id) {
+                <article
+                  class="panel rule-card"
+                  [style.border-left]="'4px solid ' + (rule.color || '#db6a32')"
+                >
+                  <span class="device-icon"><p-icon name="rule" /></span>
+                  <div class="rule-info">
+                    <h2>{{ rule.name }}</h2>
+                    <p>{{ ruleScope(rule) }}</p>
+                    @if (rule.customMessage) {
+                      <p class="rule-message">{{ rule.customMessage }}</p>
+                    }
+                    <div class="rule-condition">
+                      {{ label(rule.metricField) }}
+                      <b
+                        >{{ label(rule.condition) }} {{ num(rule.threshold)
+                        }}{{
+                          ['BETWEEN', 'OUTSIDE_RANGE'].includes(rule.condition)
+                            ? ' y ' + num(rule.thresholdMax)
+                            : ''
+                        }}</b
+                      >
+                    </div>
+                  </div>
+                  <span class="badge orange">{{ label(rule.severity) }}</span
+                  ><button
+                    class="button secondary"
+                    [disabled]="working()"
+                    (click)="toggleRule(rule)"
+                  >
+                    {{ rule.isActive ? 'Activa · Pausar' : 'Pausada · Activar' }}</button
+                  ><button class="text-button" (click)="openRule(rule)">Editar</button>
+                  <button class="text-button danger" (click)="deleteRule(rule)">Eliminar</button>
+                </article>
+              } @empty {
+                <div class="empty">
+                  <p-icon name="rule" />
+                  <h3>Define lo que importa</h3>
+                  <p>Crea una regla para detectar cambios en tus sensores.</p>
+                  <button class="button primary" (click)="openRule()">
+                    Nueva regla <p-icon name="plus" />
+                  </button>
+                </div>
+              }
+            </div>
+          }
+          @case ('alerts') {
+            <div class="stats compact">
+              <article>
+                <span>Pendientes</span><strong>{{ pending }}</strong>
+              </article>
+              <article>
+                <span>Reconocidas</span><strong>{{ count('ACKNOWLEDGED') }}</strong>
+              </article>
+              <article>
+                <span>Resueltas</span><strong>{{ count('RESOLVED') }}</strong>
+              </article>
+            </div>
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Historial de alertas</h2>
+                  <p>
+                    Reconoce una alerta para indicar que la estás revisando. Resuélvela al terminar.
+                  </p>
+                </div>
+              </div>
+              <p-alert-browser />
+            </article>
+          }
+          @case ('sessions') {
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Sesiones de {{ s.user()?.username }}</h2>
+                  <p>Revocar una sesión cierra su acceso inmediatamente.</p>
+                </div>
+                <p-icon name="shield" />
+              </div>
+              <div class="session-list">
+                @for (session of d.sessions; track session.id) {
+                  <div class="session-row">
+                    <p-icon name="shield" />
+                    <div>
+                      <strong>{{
+                        session.id === s.sessionId() ? 'Este navegador' : 'Otra sesión'
+                      }}</strong>
+                      <p class="session-agent">{{ session.userAgent || 'Cliente desconocido' }}</p>
+                      <small
+                        >Creada {{ date(session.createdAt) }} · Expira
+                        {{ date(session.expiresAt) }}</small
+                      >
+                    </div>
+                    @if (session.revokedAt) {
+                      <span class="badge">Revocada</span>
+                    } @else if (session.id === s.sessionId()) {
+                      <span class="badge green">Actual</span>
+                    } @else {
+                      <button class="button secondary" (click)="revoke(session.id)">Revocar</button>
+                    }
+                  </div>
+                }
+              </div>
+            </article>
+          }
+          @case ('users') {
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Usuarios de la plataforma</h2>
+                  <p>Deshabilitar un usuario revoca sus sesiones activas.</p>
+                </div>
+                <span class="badge">{{ d.users.length }} usuarios</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                      <th>Expiración</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (user of d.users; track user.id) {
+                      <tr>
+                        <td>
+                          <strong>{{ user.name }}</strong
+                          ><small>{{ user.username }}</small>
+                        </td>
+                        <td>
+                          <span class="badge">{{ user.role }}</span>
+                        </td>
+                        <td>
+                          <span class="badge" [class.green]="user.status === 'ACTIVE'">{{
+                            user.status === 'ACTIVE' ? 'Activo' : 'Deshabilitado'
+                          }}</span>
+                        </td>
+                        <td>{{ date(user.expiresAt) }}</td>
+                        <td>
+                          @if (user.id === s.user()?.id) {
+                            Tu cuenta
+                          } @else {
+                            <button class="text-button" (click)="toggleUser(user)">
+                              {{ user.status === 'ACTIVE' ? 'Deshabilitar' : 'Habilitar' }}
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          }
+        }
+        <footer class="page-footer">
+          <span><p-icon name="pulse" /> Cada señal tiene una historia.</span
+          ><span>Jorge Martínez · IoT Monitoring Platform</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+  <dialog #dialog (cancel)="working() ? $event.preventDefault() : null">
+    <form (ngSubmit)="save()">
+      <div class="modal-heading">
+        <div>
+          <span class="eyebrow">TU ESPACIO PULSE</span>
+          <h2>
+            {{
+              mode() === 'confirm'
+                ? confirmTitle
+                : mode() === 'device'
+                  ? editId
+                    ? 'Editar dispositivo'
+                    : 'Un nuevo punto de conexión.'
+                  : 'Una regla para anticiparte.'
+            }}
+          </h2>
+        </div>
+        <button
+          type="button"
+          class="icon-button"
+          (click)="close()"
+          aria-label="Cerrar"
+          [disabled]="working()"
+        >
+          <p-icon name="close" />
+        </button>
+      </div>
+      <p class="muted">
+        {{
+          mode() === 'confirm'
+            ? confirmText
+            : mode() === 'device'
+              ? 'Dale un nombre y una ubicación a tu sensor.'
+              : 'Elige la condición que activará una alerta.'
+        }}
+      </p>
+      @if (mode() !== 'confirm') {
+        <label
+          >Nombre<input
+            name="name"
+            [(ngModel)]="form.name"
+            required
+            maxlength="100"
+            [placeholder]="mode() === 'device' ? 'Sensor del invernadero' : 'Temperatura alta'"
+        /></label>
+      }
+      @if (mode() === 'device') {
+        <label
+          >Zona / ubicación<input
+            name="location"
+            [(ngModel)]="form.location"
+            maxlength="150"
+            placeholder="Invernadero · Zona A"
+        /></label>
+      }
+      @if (mode() === 'rule') {
+        <label
+          >Zona de la regla<select
+            aria-label="Zona de la regla"
+            name="ruleZone"
+            [ngModel]="form.zone"
+            (ngModelChange)="changeRuleZone($event)"
+          >
+            <option value="*">Todas las zonas</option>
+            @for (zone of zones; track zone) {
+              <option [value]="zone">{{ zone || 'Sin zona' }}</option>
+            }
+          </select></label
+        >
+        <fieldset class="rule-devices">
+          <legend>Dispositivos de la zona</legend>
+          <button type="button" class="text-button" (click)="form.deviceIds = []">
+            Limpiar selección
+          </button>
+          @for (device of zoneDevices; track device.id) {
+            <label class="check-label"
+              ><input
+                type="checkbox"
+                [checked]="form.deviceIds.includes(device.id)"
+                (change)="chooseRuleDevice(device.id, $any($event.target).checked)"
+              />{{ device.name }}</label
+            >
+          }
+        </fieldset>
+        <div class="form-grid">
+          <label
+            >Métrica<select aria-label="Métrica" name="metricField" [(ngModel)]="form.metricField">
+              <option value="temperature">Temperatura (°C)</option>
+              <option value="humidity">Humedad (%)</option>
+              <option value="pressure">Presión (hPa)</option>
+            </select></label
+          ><label
+            >Condición<select aria-label="Condición" name="condition" [(ngModel)]="form.condition">
+              <option value="GREATER_THAN">Mayor que (&gt;)</option>
+              <option value="LESS_THAN">Menor que (&lt;)</option>
+              <option value="EQUALS">Igual a (=)</option>
+              <option value="BETWEEN">Dentro del rango (incluye límites)</option>
+              <option value="OUTSIDE_RANGE">Fuera del rango</option>
+            </select></label
+          >
+        </div>
+        <div class="form-grid">
+          <label
+            >Umbral<input
+              name="threshold"
+              [(ngModel)]="form.threshold"
+              type="number"
+              step="0.01"
+              required /></label
+          ><label
+            >Severidad<select aria-label="Severidad" name="severity" [(ngModel)]="form.severity">
+              <option value="HIGH">Alta</option>
+              <option value="MEDIUM">Media</option>
+              <option value="LOW">Baja</option>
+              <option value="CRITICAL">Crítica</option>
+            </select></label
+          >
+        </div>
+      }
+      @if (mode() === 'rule') {
+        @if (rangedRule) {
+          <label
+            >Límite superior<input
+              aria-label="Límite superior"
+              name="thresholdMax"
+              [(ngModel)]="form.thresholdMax"
+              type="number"
+              step="0.01"
+              required
+          /></label>
+          <p class="fine-print">
+            El umbral es el límite inferior. Dentro incluye ambos límites; fuera activa al bajar del
+            inferior o superar el superior.
+          </p>
+        }
+        <label
+          >Mensaje personalizado<textarea
+            aria-label="Mensaje personalizado"
+            name="customMessage"
+            [(ngModel)]="form.customMessage"
+            maxlength="500"
+            rows="3"
+            placeholder="Revisar ventilación de la zona"
+          ></textarea>
+        </label>
+        <label
+          >Color de la alarma<input
+            aria-label="Color de la alarma"
+            name="color"
+            type="color"
+            [(ngModel)]="form.color"
+        /></label>
+      }
+      <p class="form-error" role="alert">{{ modalError() }}</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" (click)="close()" [disabled]="working()">
+          Cancelar</button
+        ><button class="button primary" type="submit" [disabled]="working()">
+          {{ working() ? 'Guardando…' : mode() === 'confirm' ? 'Confirmar' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+  </dialog>
+}
+
+<div class="toast" [class.show]="s.notice()" role="status" aria-live="polite">{{ s.notice() }}</div>

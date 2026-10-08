@@ -1,3 +1,4 @@
+import { HistoryQueryDto } from './dto/history-query.dto';
 import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
@@ -22,6 +23,15 @@ export class AnalyticsController {
     return this.analyticsService.getMetrics(id, user);
   }
 
+  @Get('devices/:id/history')
+  @ApiOperation({ summary: 'Historial de temperatura por intervalo, agregado en hasta 500 puntos' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: HistoryQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.analyticsService.getHistory(id, query, user);
+  }
   @Get('devices/:id/readings')
   @ApiOperation({
     summary: 'Obtener lecturas históricas de un dispositivo (paginado)',

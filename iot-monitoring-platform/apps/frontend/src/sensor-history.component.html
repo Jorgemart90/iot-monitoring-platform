@@ -1,0 +1,66 @@
+﻿<article class="panel history-panel">
+  <div class="panel-heading">
+    <div>
+      <h2>El pulso de tus sensores</h2>
+      <p>Temperatura en °{{ s.unit() }} · una línea por sensor</p>
+    </div>
+    <label
+      >Zona<select
+        aria-label="Zona de la gráfica"
+        [ngModel]="zone()"
+        (ngModelChange)="zone.set($event)"
+      >
+        <option value="">Todas las zonas</option>
+        @for (z of zones(); track z) {
+          <option [value]="z">{{ z }}</option>
+        }
+      </select></label
+    >
+  </div>
+  <div class="history-controls">
+    <div class="sensor-picker">
+      @for (group of groups(); track group.zone) {
+        <fieldset>
+          <legend>{{ group.zone }}</legend>
+          @for (device of group.devices; track device.id) {
+            <label class="check-label"
+              ><input
+                type="checkbox"
+                [checked]="chosen().includes(device.id)"
+                (change)="toggle(device.id, $any($event.target).checked)"
+              />{{ device.name }}</label
+            >
+          }
+        </fieldset>
+      } @empty {
+        <p>No hay dispositivos en esta zona.</p>
+      }
+    </div>
+    <div class="picker-actions">
+      <button class="text-button" (click)="selectZone()">Seleccionar zona</button
+      ><button class="text-button" (click)="selection.set([])">Limpiar selección</button
+      ><label
+        >Unidad<select
+          aria-label="Unidad de la gráfica"
+          [ngModel]="s.unit()"
+          (ngModelChange)="s.unit.set($event)"
+        >
+          <option value="C">Celsius / centígrados (°C)</option>
+          <option value="F">Fahrenheit (°F)</option>
+        </select></label
+      >
+    </div>
+    <p-time-range [value]="range()" (changed)="range.set($event)" />
+    @if (error()) {
+      <p class="form-error" role="alert">{{ error() }}</p>
+    }
+    <span class="loading-label" role="status">{{
+      loading() ? 'Actualizando historial…' : 'Historial actualizado'
+    }}</span>
+  </div>
+  <p-chart [series]="series()" [unit]="s.unit()" [from]="from()" [to]="to()" />
+  <p class="aggregation-note">
+    Se incluyen todas las lecturas del intervalo. Si hay muchas, cada punto muestra el promedio del
+    tramo; al pasar el cursor verás mínimo, máximo y cantidad. Acerca la gráfica para más detalle.
+  </p>
+</article>

@@ -16,6 +16,6 @@ import { JwtAuthGuard, JwtSecurityModule } from '@app/common';
     AnalyticsModule,
     KafkaModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [{ provide: APP_GUARD, useExisting: JwtAuthGuard }],
 })
 export class AppModule {}

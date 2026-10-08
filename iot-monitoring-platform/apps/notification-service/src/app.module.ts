@@ -16,6 +16,6 @@ import { DatabaseModule } from '@app/database';
     KafkaModule,
     NotificationsModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [{ provide: APP_GUARD, useExisting: JwtAuthGuard }],
 })
 export class AppModule {}

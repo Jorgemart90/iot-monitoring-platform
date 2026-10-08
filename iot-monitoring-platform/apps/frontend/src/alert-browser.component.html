@@ -1,0 +1,170 @@
+<div class="alert-filters">
+  <div class="filter-grid">
+    <label
+      >Zona<select
+        aria-label="Zona de alertas"
+        [ngModel]="zone()"
+        (ngModelChange)="changeZone($event)"
+      >
+        <option value="">Todas las zonas</option>
+        @for (z of zones(); track z) {
+          <option [value]="z">{{ z }}</option>
+        }
+      </select></label
+    >
+    <label
+      >Dispositivo<select
+        aria-label="Dispositivo de alertas"
+        [ngModel]="device()"
+        (ngModelChange)="device.set($event); change()"
+      >
+        <option value="">Todos los dispositivos</option>
+        @for (d of devices(); track d.id) {
+          <option [value]="d.id">{{ d.name }}</option>
+        }
+      </select></label
+    >
+    <label
+      >Tipo de alarma<select
+        aria-label="Tipo de alarma"
+        [ngModel]="kind()"
+        (ngModelChange)="kind.set($event); change()"
+      >
+        <option value="">Todos los tipos</option>
+        <option value="temperature">Temperatura</option>
+        <option value="humidity">Humedad</option>
+        <option value="pressure">Presión</option>
+      </select></label
+    >
+    <label
+      >Severidad<select
+        aria-label="Severidad de alertas"
+        [ngModel]="severity()"
+        (ngModelChange)="severity.set($event); change()"
+      >
+        <option value="">Todas</option>
+        <option value="LOW">Baja</option>
+        <option value="MEDIUM">Media</option>
+        <option value="HIGH">Alta</option>
+        <option value="CRITICAL">Crítica</option>
+      </select></label
+    >
+    <label
+      >Estado<select
+        aria-label="Estado de alertas"
+        [ngModel]="status()"
+        (ngModelChange)="status.set($event); change()"
+      >
+        <option value="">Todos</option>
+        <option value="TRIGGERED">Pendiente</option>
+        <option value="ACKNOWLEDGED">Reconocida</option>
+        <option value="RESOLVED">Resuelta</option>
+      </select></label
+    >
+    <label
+      >Agrupar por<select
+        aria-label="Agrupar alertas por"
+        [ngModel]="groupBy()"
+        (ngModelChange)="groupBy.set($event)"
+      >
+        <option value="none">Sin agrupar</option>
+        <option value="device">Dispositivo</option>
+        <option value="type">Tipo de alarma</option>
+        <option value="zone">Zona</option>
+      </select></label
+    >
+  </div>
+  <p-time-range [value]="range()" (changed)="range.set($event); change()" />
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+  <p class="results-caption" role="status">
+    {{ loading() ? 'Actualizando…' : total() + ' alertas coinciden' }} · {{ items().length }} en
+    esta página. Los grupos corresponden a esta página.
+  </p>
+</div>
+@for (group of groups(); track group.key) {
+  @if (groupBy() !== 'none') {
+    <h3 class="alert-group">
+      {{ group.name }} <span class="badge">{{ group.items.length }}</span>
+    </h3>
+  }
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Alerta / dispositivo</th>
+          <th>Zona</th>
+          <th>Lectura</th>
+          <th>Severidad</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of group.items; track a.id) {
+          <tr>
+            <td class="alert-description">
+              <span
+                class="alert-color"
+                [style.background-color]="a.metadata?.color || a.rule?.color || '#db6a32'"
+                aria-label="Color de alarma"
+              ></span
+              ><strong>{{ a.rule?.name || 'Alerta de sensor' }}</strong
+              ><small
+                >{{ deviceName(a.deviceId) }} · {{ label(a.rule?.metricField || 'Alarma') }}</small
+              >
+              @if (a.message) {
+                <p class="alert-message">{{ message(a) }}</p>
+              }
+            </td>
+            <td>{{ zoneName(a.deviceId) }}</td>
+            <td>{{ reading(a) }}</td>
+            <td>
+              <span class="badge orange">{{ label(a.severity) }}</span>
+            </td>
+            <td>
+              <span class="badge" [class.green]="a.status === 'RESOLVED'">{{
+                label(a.status)
+              }}</span>
+            </td>
+            <td class="date-cell">{{ date(a.triggeredAt) }}</td>
+            <td>
+              @if (a.status !== 'RESOLVED') {
+                <button class="text-button" (click)="act(a)" [disabled]="working()">
+                  {{ a.status === 'TRIGGERED' ? 'Reconocer' : 'Resolver' }}
+                </button>
+              } @else {
+                —
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @empty {
+  <div class="empty">
+    <h3>{{ loading() ? 'Consultando alertas…' : 'No hay alertas con estos filtros' }}</h3>
+    <p>Prueba otra zona, amplía el periodo o envía una lectura que active una regla.</p>
+  </div>
+}
+@if (pages() > 1) {
+  <div class="pagination">
+    <button
+      class="button secondary"
+      [disabled]="page() <= 1 || loading()"
+      (click)="page.set(page() - 1)"
+    >
+      Anterior</button
+    ><span>Página {{ page() }} de {{ pages() }}</span
+    ><button
+      class="button secondary"
+      [disabled]="page() >= pages() || loading()"
+      (click)="page.set(page() + 1)"
+    >
+      Siguiente
+    </button>
+  </div>
+}

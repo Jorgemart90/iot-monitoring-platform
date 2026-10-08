@@ -2,6 +2,16 @@
 
 A production-ready IoT monitoring platform built with NestJS microservices, demonstrating real-time data processing, event-driven architecture, and modern backend patterns.
 
+## Demo visual con Angular
+
+Abre **http://localhost:5173** después de ejecutar `docker compose -p iot-demo-auth up -d --build`.
+
+Pulsa **Crear mi demo** → **Preparar mi recorrido** → **Crear reglas del recorrido** → **Enviar lectura y recibir alertas** para ver un sensor, sus métricas y una alerta en tiempo real. En **Alertas**, reconoce y resuelve el evento. Para acceder como MASTER, usa la pestaña **Administrador** y las credenciales del `.env` de este checkout.
+
+Envía temperaturas personalizadas en °C o °F, compara varios sensores por zona con zoom e historial y filtra o agrupa tus alertas por fecha, zona, dispositivo y tipo de alarma.
+
+Consulta [la guía del frontend](docs/FRONTEND.md) para desarrollo local, sesiones, simulación y pruebas de navegador.
+
 ## Tech Stack
 
 - **Framework**: NestJS (monorepo)
@@ -349,3 +359,13 @@ curl -X POST http://localhost:3003/api/v1/rules \
 # 6. Cuando se dispare, verifica en Kafka UI
 #    → Tópico alert.triggered recibe el evento
 ```
+
+### Resumen operativo y reglas por zona
+
+El resumen identifica el sensor y la zona de temperatura/humedad, conserva el total de dispositivos y distingue los que enviaron señal en los últimos diez minutos. Incluye una lista de sensores sin señal reciente y los totales de alertas pendientes críticas, altas, medias y bajas.
+
+Las reglas permiten elegir una zona y varios dispositivos, comparar mayor/menor/igual o definir un rango interior/exterior, y personalizar mensaje y color. Las alertas conservan estos detalles para su revisión histórica. Consulta [el flujo y la migración aditiva](docs/FRONTEND.md#reglas-por-zona-y-observabilidad) y [los campos de la API](docs/API.md#reglas-por-zona-rangos-y-resumen-de-alertas-featuredemo-auth-sessions).
+
+Las alarmas muestran nombre, sensor y explicación separados, con mensajes automáticos en español y unidades legibles, también al consultar el formato histórico anterior.
+
+El recorrido demuestra ahora temperatura, humedad y presión con tres reglas y tres alertas. Puedes enviar cada métrica manualmente o simular las tres juntas; el resumen incluye las tres mediciones con su unidad y origen.

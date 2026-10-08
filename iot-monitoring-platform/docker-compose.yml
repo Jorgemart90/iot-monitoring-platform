@@ -1,6 +1,23 @@
-version: '3.8'
-
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: iot-frontend
+    restart: on-failure:3
+    ports:
+      - "5173:5173"
+    environment:
+      MQTT_BROKER: mqtt://mosquitto:1883
+    depends_on:
+      - api-gateway
+      - device-service
+      - analytics-service
+      - alerts-service
+      - notification-service
+    networks:
+      - iot-network
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -119,6 +136,7 @@ services:
       context: .
       dockerfile: apps/api-gateway/Dockerfile
     container_name: iot-api-gateway
+    restart: on-failure:3
     ports:
       - "3000:3000"
     env_file:
@@ -149,6 +167,7 @@ services:
       context: .
       dockerfile: apps/device-service/Dockerfile
     container_name: iot-device-service
+    restart: on-failure:3
     ports:
       - "3001:3001"
     env_file:
@@ -177,6 +196,7 @@ services:
       context: .
       dockerfile: apps/analytics-service/Dockerfile
     container_name: iot-analytics-service
+    restart: on-failure:3
     ports:
       - "3002:3002"
     env_file:
@@ -202,6 +222,7 @@ services:
       context: .
       dockerfile: apps/alerts-service/Dockerfile
     container_name: iot-alerts-service
+    restart: on-failure:3
     ports:
       - "3003:3003"
     env_file:
@@ -225,6 +246,7 @@ services:
       context: .
       dockerfile: apps/notification-service/Dockerfile
     container_name: iot-notification-service
+    restart: on-failure:3
     ports:
       - "3004:3004"
     env_file:

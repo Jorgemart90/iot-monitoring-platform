@@ -15,6 +15,7 @@ export enum AlertCondition {
   LESS_THAN = 'LESS_THAN',
   EQUALS = 'EQUALS',
   BETWEEN = 'BETWEEN',
+  OUTSIDE_RANGE = 'OUTSIDE_RANGE',
 }
 
 export enum AlertSeverity {
@@ -44,6 +45,26 @@ export class AlertRule {
   })
   @Column({ name: 'device_id', nullable: true })
   deviceId: string;
+
+  @ApiProperty({ required: false, description: 'Zona exacta; cadena vacía = sin zona' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  zone?: string;
+
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Sensores seleccionados; null = todos los de la zona',
+  })
+  @Column({ name: 'device_ids', type: 'jsonb', nullable: true })
+  deviceIds?: string[];
+
+  @ApiProperty({ required: false, maxLength: 500 })
+  @Column({ name: 'custom_message', type: 'varchar', length: 500, nullable: true })
+  customMessage?: string;
+
+  @ApiProperty({ required: false, example: '#db6a32' })
+  @Column({ type: 'varchar', length: 7, nullable: true })
+  color?: string;
 
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   ownerId: string | null;

@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { HistoryQueryDto } from './dto/history-query.dto';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device, DeviceReading, UserRole } from '@app/database';
@@ -82,6 +83,44 @@ export class AnalyticsService {
     };
   }
 
+  async getHistory(deviceId: string, query: HistoryQueryDto, user: AuthUser) {
+    await this.assertDeviceAccess(deviceId, user);
+    const start = Date.parse(query.from),
+      end = Date.parse(query.to);
+    if (
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end <= start ||
+      end - start > 366 * 86400000
+    )
+      throw new BadRequestException(
+        'El intervalo debe ser válido, creciente y no superar 366 días',
+      );
+    const bucketSeconds = Math.max(1, (end - start) / 1000 / (query.points ?? 240));
+    const data = await this.readingRepository.query(
+      `
+      SELECT MIN(timestamp) AS timestamp, AVG(temperature)::float8 AS temperature,
+             MIN(temperature)::float8 AS min, MAX(temperature)::float8 AS max,
+             COUNT(*)::int AS count
+      FROM device_readings
+      WHERE device_id = $1 AND timestamp >= $2::timestamp AND timestamp < $3::timestamp
+            AND temperature IS NOT NULL
+      GROUP BY FLOOR(EXTRACT(EPOCH FROM (timestamp - $2::timestamp)) / $4)
+      ORDER BY MIN(timestamp) ASC
+    `,
+      [deviceId, new Date(start).toISOString(), new Date(end).toISOString(), bucketSeconds],
+    );
+    return {
+      data,
+      meta: {
+        from: query.from,
+        to: query.to,
+        bucketSeconds,
+        aggregation: 'average',
+        totalReadings: data.reduce((sum, point) => sum + point.count, 0),
+      },
+    };
+  }
   private async assertDeviceAccess(deviceId: string, user: AuthUser): Promise<void> {
     const where =
       user.role === UserRole.MASTER ? { id: deviceId } : { id: deviceId, ownerId: user.userId };

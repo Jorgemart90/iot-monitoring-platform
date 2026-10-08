@@ -1,0 +1,100 @@
+﻿<main class="login">
+  <section class="login-story">
+    <div class="brand">
+      <p-icon name="pulse" /><span>pulse<span class="brand-dot">.</span></span>
+    </div>
+    <div class="story-copy">
+      <span class="eyebrow">IOT MONITORING PLATFORM</span>
+      <h1>Tu mundo.<br />En tiempo <em>real.</em></h1>
+      <p>
+        Transforma las señales de tus sensores en decisiones. Observa, entiende y actúa desde un
+        solo lugar.
+      </p>
+      <div class="story-tags">
+        <span><p-icon name="sensor" /> Sensores conectados</span
+        ><span><p-icon name="bell" /> Alertas al instante</span>
+      </div>
+    </div>
+    <div class="signal-art" aria-hidden="true">
+      <div class="signal-caption"><span class="live-dot"></span> DE LA SEÑAL A LA ACCIÓN</div>
+      <svg viewBox="0 0 540 130">
+        <path class="signal-baseline" d="M0 65H540" />
+        <path
+          class="signal-line"
+          d="M0 65H65L80 45 96 85 115 65H175L191 65 207 10 230 120 252 45 267 65H330L350 40 370 85 387 65H540"
+        />
+      </svg>
+      <div class="signal-labels">
+        <span>01 / CONECTA</span><span>02 / OBSERVA</span><span>03 / ACTÚA</span>
+      </div>
+    </div>
+    <footer>Diseñado por Jorge Martínez <span>Portfolio · Demo interactiva</span></footer>
+  </section>
+  <section class="login-access">
+    <span class="small-label">BIENVENIDO A PULSE</span>
+    <h2>Explora lo que<br />está pasando.</h2>
+    <p class="muted">Tu próximo descubrimiento empieza con una señal.</p>
+    <div class="login-tabs" role="group" aria-label="Tipo de acceso">
+      <button
+        [class.active]="!master()"
+        [attr.aria-pressed]="!master()"
+        (click)="master.set(false)"
+      >
+        Probar demo</button
+      ><button [class.active]="master()" [attr.aria-pressed]="master()" (click)="master.set(true)">
+        Administrador
+      </button>
+    </div>
+    @if (master()) {
+      <form (ngSubmit)="login()">
+        <label
+          >Usuario<input
+            name="username"
+            [(ngModel)]="username"
+            autocomplete="username"
+            placeholder="Tu usuario de administrador"
+            required
+            maxlength="80" /></label
+        ><label
+          >Contraseña<input
+            name="password"
+            [(ngModel)]="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Tu contraseña"
+            required
+        /></label>
+        <p class="form-error" role="alert">{{ s.error() }}</p>
+        <button class="button primary full" type="submit" [disabled]="s.busy()">
+          {{ s.busy() ? 'Conectando…' : 'Iniciar sesión' }} <p-icon name="arrow" />
+        </button>
+      </form>
+    } @else {
+      <div class="demo-intro">
+        <div class="demo-badge"><p-icon name="play" /> DEMO INTERACTIVA</div>
+        <h3>Experimenta el recorrido completo.</h3>
+        <p>Crea tu cuenta temporal en un clic.<br />Sin correo, sin contraseña.</p>
+        <ul class="benefits">
+          <li><p-icon name="check" /> Hasta 3 sensores y 3 reglas propias</li>
+          <li><p-icon name="check" /> Simulación y alertas en tiempo real</li>
+          <li><p-icon name="check" /> Acceso temporal de 24 h por defecto</li>
+        </ul>
+        <p class="form-error" role="alert">{{ s.error() }}</p>
+        <button class="button primary full" (click)="login()" [disabled]="s.busy()">
+          {{ s.busy() ? 'Creando tu espacio…' : 'Crear mi demo' }} <p-icon name="arrow" />
+        </button>
+        <p class="fine-print">
+          Se crea un usuario DEMO temporal. Tus datos se eliminan automáticamente al expirar.
+        </p>
+      </div>
+    }
+    <div class="access-note">
+      <p-icon name="shield" />
+      <p>
+        Un espacio solo para ti.<br /><span
+          >Tus dispositivos y alertas están aislados de otras demos.</span
+        >
+      </p>
+    </div>
+  </section>
+</main>

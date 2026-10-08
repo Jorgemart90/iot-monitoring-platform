@@ -116,8 +116,11 @@ export class DevicesService {
       timestamp: readingData.timestamp || new Date(),
       metadata: readingData.metadata,
     });
-    device.lastSeenAt = readingData.timestamp || new Date();
-    await this.deviceRepository.save(device);
-    return this.readingRepository.save(reading);
+    // La actividad representa recepción confirmada, no el reloj enviado por el sensor.
+    return this.readingRepository.manager.transaction(async (manager) => {
+      const saved = await manager.save(DeviceReading, reading);
+      await manager.update(Device, device.id, { lastSeenAt: () => 'CURRENT_TIMESTAMP' });
+      return saved;
+    });
   }
 }

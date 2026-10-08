@@ -1,3 +1,4 @@
+import { AlertQueryDto } from './dto/alert-query.dto';
 import { Controller, Get, Patch, Param, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { AlertsService } from './alerts.service';
@@ -12,8 +13,18 @@ export class AlertsController {
   @Get()
   @ApiOperation({ summary: 'Listar todas las alertas disparadas (paginado)' })
   @ApiResponse({ status: 200, description: 'Lista paginada de alertas' })
-  findAll(@Query() paginationDto: PaginationDto, @CurrentUser() user: AuthUser) {
+  findAll(@Query() paginationDto: AlertQueryDto, @CurrentUser() user: AuthUser) {
     return this.alertsService.findAll(paginationDto, user);
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Total de alertas pendientes por severidad, sin paginación' })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { total: 4, bySeverity: { LOW: 1, MEDIUM: 1, HIGH: 1, CRITICAL: 1 } } },
+  })
+  summary(@CurrentUser() user: AuthUser) {
+    return this.alertsService.summary(user);
   }
 
   @Get(':id')

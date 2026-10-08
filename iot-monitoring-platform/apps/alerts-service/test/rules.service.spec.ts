@@ -58,6 +58,83 @@ describe('RulesService', () => {
 
   afterEach(() => jest.clearAllMocks());
 
+  it.each([
+    [AlertCondition.BETWEEN, 10, true],
+    [AlertCondition.BETWEEN, 20, true],
+    [AlertCondition.BETWEEN, 21, false],
+    [AlertCondition.OUTSIDE_RANGE, 10, false],
+    [AlertCondition.OUTSIDE_RANGE, 20, false],
+    [AlertCondition.OUTSIDE_RANGE, 9, true],
+    [AlertCondition.OUTSIDE_RANGE, 21, true],
+  ])('evalúa límites %s con %s', async (condition, temperature, expected) => {
+    mockDeviceRepository.findOne.mockResolvedValue({
+      id: 'device-1',
+      ownerId: 'master-1',
+      location: 'Norte',
+    });
+    mockRepository.find.mockResolvedValue([
+      makeRule({ condition, threshold: 10, thresholdMax: 20 }),
+    ]);
+    expect(
+      (await service.evaluateReading({ deviceId: 'device-1', temperature, timestamp: new Date() }))
+        .length,
+    ).toBe(expected ? 1 : 0);
+  });
+
+  it('compara igualdad contra decimales devueltos como texto por PostgreSQL', async () => {
+    mockDeviceRepository.findOne.mockResolvedValue({ id: 'device-1' });
+    mockRepository.find.mockResolvedValue([
+      makeRule({ condition: AlertCondition.EQUALS, threshold: '40.00' as any }),
+    ]);
+    expect(
+      await service.evaluateReading({
+        deviceId: 'device-1',
+        temperature: 40,
+        timestamp: new Date(),
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('combina zona, selección múltiple y propiedad del usuario', async () => {
+    mockDeviceRepository.findOne.mockResolvedValue({
+      id: 'device-1',
+      ownerId: 'demo-1',
+      location: 'Norte',
+    });
+    const rules = [
+      makeRule({ zone: 'Sur' }),
+      makeRule({ deviceIds: ['device-2'] }),
+      makeRule({ ownerId: 'demo-2', owner: { role: UserRole.DEMO } as any }),
+      makeRule({
+        zone: 'Norte',
+        deviceIds: ['device-1', 'device-2'],
+        customMessage: 'Revisar ventilación',
+      }),
+    ];
+    mockRepository.find.mockResolvedValue(rules);
+    const result = await service.evaluateReading({
+      deviceId: 'device-1',
+      temperature: 40,
+      timestamp: new Date(),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].message).toBe('Revisar ventilación');
+  });
+
+  it('rechaza rangos incompletos o invertidos al editar', async () => {
+    mockRepository.findOne.mockResolvedValue(makeRule({ condition: AlertCondition.GREATER_THAN }));
+    await expect(
+      service.update('rule-1', { condition: AlertCondition.BETWEEN }, masterUser),
+    ).rejects.toThrow('límite superior');
+    await expect(
+      service.update(
+        'rule-1',
+        { condition: AlertCondition.OUTSIDE_RANGE, thresholdMax: 20 },
+        masterUser,
+      ),
+    ).rejects.toThrow('límite superior');
+  });
+
   describe('evaluateReading', () => {
     const reading: IDeviceReading = {
       deviceId: 'device-1',
@@ -80,6 +157,7 @@ describe('RulesService', () => {
       const result = await service.evaluateReading(reading);
       expect(result).toHaveLength(1);
       expect(result[0].triggeredValue).toBe(40);
+      expect(result[0].message).toBe('Temperatura: 40 °C. Supera el umbral de 35 °C.');
     });
 
     it('should not trigger if value is below threshold', async () => {
@@ -122,6 +200,16 @@ describe('RulesService', () => {
       const result = await service.evaluateReading(reading);
       expect(result).toHaveLength(0);
     });
+  });
+
+  it('permite pausar una regla aunque un sensor se haya movido de zona', async () => {
+    const rule = makeRule({ zone: 'Norte', deviceIds: ['device-1'] });
+    mockRepository.findOne.mockResolvedValue(rule);
+    mockDeviceRepository.findOne.mockResolvedValue({ id: 'device-1', location: 'Sur' });
+    mockRepository.save.mockImplementation(async (value) => value);
+    const result = await service.update('rule-1', { isActive: false }, masterUser);
+    expect(result.isActive).toBe(false);
+    expect(mockDeviceRepository.findOne).not.toHaveBeenCalled();
   });
 
   describe('findOne', () => {

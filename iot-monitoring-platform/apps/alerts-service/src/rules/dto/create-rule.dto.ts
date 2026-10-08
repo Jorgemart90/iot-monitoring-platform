@@ -6,6 +6,13 @@ import {
   IsNumber,
   IsBoolean,
   IsUUID,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+  ArrayUnique,
+  MaxLength,
+  Matches,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AlertCondition, AlertSeverity } from '@app/database';
@@ -26,9 +33,45 @@ export class CreateRuleDto {
   @IsOptional()
   deviceId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Zona actual de los sensores. Cadena vacía = sin zona',
+    maxLength: 150,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  zone?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'UUID de uno o varios sensores de la zona. Sin lista = toda la zona',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  deviceIds?: string[];
+
+  @ApiPropertyOptional({
+    maxLength: 500,
+    description: 'Mensaje literal que se conserva en cada alerta',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  customMessage?: string;
+
+  @ApiPropertyOptional({ example: '#db6a32', description: 'Color hexadecimal RGB' })
+  @IsOptional()
+  @Matches(/^#[0-9a-fA-F]{6}$/)
+  color?: string;
+
   @ApiProperty({ example: 'temperature', description: 'Campo del sensor a evaluar' })
   @IsString()
   @IsNotEmpty()
+  @IsIn(['temperature', 'humidity', 'pressure'])
   metricField: string;
 
   @ApiProperty({ enum: AlertCondition, example: AlertCondition.GREATER_THAN })
@@ -39,7 +82,10 @@ export class CreateRuleDto {
   @IsNumber()
   threshold: number;
 
-  @ApiPropertyOptional({ example: 40.0, description: 'Umbral máximo para condición BETWEEN' })
+  @ApiPropertyOptional({
+    example: 40.0,
+    description: 'Límite superior para BETWEEN u OUTSIDE_RANGE, mayor que threshold',
+  })
   @IsNumber()
   @IsOptional()
   thresholdMax?: number;
